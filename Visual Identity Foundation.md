@@ -1,0 +1,57 @@
+Kad Khawin — Visual Identity Foundation (v3)
+
+Status: creative direction pivoted away from the dark-wine "luxury fashion" concept (v2) to a cream/ivory Malaysian wedding-invitation feel, inspired by kadkahwinmy.com's invitation format (structure only — no assets/artwork copied). Real couple names: Syamil & Sara, 12.12.2026, Kuala Lumpur.
+
+Direction locked in (v3)
+Balance: ~70% elegant printed wedding invitation, ~30% modern interactive web craft. Guest's first reaction should be "Cantiknya kad kahwin ni," then after interacting, "Eh, website ni smooth gila."
+Explicitly avoid: SaaS/startup/corporate/fashion-portfolio look, dark luxury backgrounds, futuristic UI, four-card SaaS-style countdown/detail blocks.
+Palette: warm ivory/cream paper tones (`--ivory-50` `#fdfbf5` through `--ivory-300` `#ecdcb9`), warm near-black ink for type (`--ink-900` `#2a2119`, never pure black), muted maroon as the primary accent (`--maroon-800` `#6b2129`, used for the script "&", key labels, button), muted brass (`--brass-500` `#a9834f`) for thin ornamental lines only, sage green (`--sage-600`) reserved for small parent-label text. No gold gradients, no wine/black backgrounds.
+Type system unchanged in kind, recolored in use: Fraunces (display serif, names/headings), Inter (sans, uppercase wide-tracked labels), Mrs Saint Delafield (script, only for "&" glyphs).
+Composition rule flipped from v2: names are now centered/symmetrical (Syamil / & / Sara stacked, centered), not asymmetric — matches the "printed card" feel requested.
+
+Desktop/mobile shell (new in v3)
+Mobile (`<860px`): full-bleed, edge-to-edge, ~390-430px effective width — the screen reads as the card itself.
+Desktop (`≥860px`): a fixed `.app` column (`--canvas-w: 480px`) centered on the page with box-shadow, sitting on a soft blurred `.atmosphere` backdrop (radial gradients + linear cream gradient) — never stretches full width. Bottom nav and music toggle switch from `fixed` to `absolute` at this breakpoint so they stay pinned to the card edge, not the viewport edge.
+
+Decorative system (new, original — not traced from reference)
+`.corner-sprig`: a reusable inline `<symbol id="sprig">` (simple stem + leaf bezier paths + 2 dots), placed at all 4 corners of the cover/intro/date sections via CSS transform (rotate/flip), colored via `currentColor` = brass.
+`.ornamental-frame`: thin inset rect border on the cover, stroke-drawn on entrance via `stroke-dasharray`/`stroke-dashoffset` animation (real path length read via `getTotalLength()`).
+`.arch-motif`: a single original SVG line-drawn arch (mihrab/window silhouette) sitting low-opacity behind the cover names.
+`.divider`: thin line + dot, used between intro sections instead of card boxes.
+Corner sprigs get a quiet scroll-linked parallax (`y: "+=4"`, scrub) per section — "leaves moving 2-4px during scrolling" from the brief.
+
+Sections built so far (first revision scope)
+Cover/opening screen — ivory background (not dark), ornamental frame + corner sprigs + arch motif, centered Syamil/&/Sara, "Buka Jemputan" button styled as a bordered fill-wipe control (not a generic pill).
+Opening animation (script.js `openInvitation()`) — corners drift outward and fade, names lift/blur/fade, cover reveals what's beneath via a `clip-path: inset()` wipe (NOT a translateY/lift like v2), then brand mark / bottom nav / music toggle fade in.
+Intro/main invitation section (`#intro`) — Assalamualaikum greeting, doa syukur lede, divider, centered names repeated as visual identity, parent-name placeholders (`[Nama Bapa]` / `[Nama Ibu]`) for both sides pending real info.
+Wedding date section (`#tarikh`) — editorial stacked typography (SABTU / 12 / DISEMBER / 2026), not a card; integrated HARI/JAM/MINIT/SAAT countdown (thin separators, no SaaS-style boxes) targeting 2026-12-12T09:00:00+08:00 (placeholder time — confirm actual ceremony start time).
+Teaser footer (`#akan-menyusul`) — placeholder note; also the fallback scroll target for the Lokasi/RSVP/Hubungi bottom-nav items until those sections exist.
+Bottom navigation — fixed/absolute floating bar, Lucide-style inline-SVG line icons (no icon library dependency added yet), Home/Majlis functional, Lokasi/RSVP/Hubungi currently point at the teaser section.
+Floating music toggle — same no-audio-wired-yet state as v2; add a `<source>` in `#bgAudio` when a track is chosen.
+
+Not built yet (next iterations)
+Full event/itinerary timeline, Google Maps/Waze buttons, gallery, RSVP form, wedding wishes wall (Ucapan & Doa), Salam Kaut/bank-transfer section with QR + copy-to-clipboard, Add to Calendar, Share Invitation. Build these using the same `[data-reveal-up]` + ScrollTrigger pattern and the same corner-sprig/divider decorative language rather than inventing new motifs per section.
+
+Known bugs fixed
+GSAP cannot interpolate `clip-path` from an unset/`none` starting value — the opening wipe silently no-op'd until an explicit `gsap.set(cover, { clipPath: "inset(0% 0% 0% 0%)" })` was added before the timeline. Keep this in mind for any future clip-path-based reveal — always `gsap.set()` a valid starting shape first.
+User reported "Buka Jemputan" appeared stuck/did nothing after receiving the split `index.html`/`style.css`/`script.js` files — most likely cause: those files only work when all three sit together in the same folder (relative `<link>`/`<script src>` paths), and something broke that when handed off. Resolved by (a) switching to single-file-only delivery (see below) so this class of bug can't recur, and (b) adding a defensive fallback: the whole animation init now runs inside `try/catch`, and the "Buka Jemputan" click handler has its own inner `try/catch` — if GSAP/ScrollTrigger/Lenis fail to load or anything throws, `fallbackReveal()` immediately shows all content via plain CSS so the guest is never stuck on the cover. Verified by testing with the CDN `<script>` tags stripped out entirely — content revealed instantly instead of hanging.
+
+Verification approach this session
+A local Node static server (one-liner, not a dependency of the project) was used to load the file in the sandboxed browser tool with real CDN'd GSAP/ScrollTrigger/Lenis (CDN access worked fine this session — re-check fresh each session rather than assuming it's blocked). Confirmed: no console errors, correct fonts/tokens/DOM, correct responsive canvas behavior (375px mobile full-bleed vs 480px centered desktop card), correct countdown math, and — critically — confirmed the "Buka Jemputan" timeline actually completes correctly end-to-end (cover hidden, nav/brand/music revealed) by manually calling `gsap.ticker.tick()` after a real wall-clock delay, since this sandbox's browser pane doesn't composite frames / run `requestAnimationFrame` (so waiting in real time never advances a GSAP timeline here — manually ticking is the workaround for verifying timeline *logic*, not visual polish). Real on-device browser testing is still the only way to judge the animation's actual feel/timing.
+Cleanup note: killed test servers by looking up the exact PID via `netstat -ano | grep :<port>` and `taskkill /F /PID <pid>` — NOT `taskkill /IM node.exe`, which kills every Node process on the machine system-wide (mistakenly done once earlier this session; do not repeat).
+
+Delivery format (changed this session — single file only)
+User explicitly asked for a single file. The project now contains ONLY `Kad Khawin - Syamil & Sara.html` (fully self-contained: inline `<style>`, inline `<script>`, CDN links for Fraunces/Inter/Mrs Saint Delafield fonts + GSAP 3.12.5 + ScrollTrigger + Lenis 1.1.14). The earlier split `index.html`/`style.css`/`script.js` were deleted — do not recreate them; edit the merged file directly going forward.
+
+Cover background artwork (new this session)
+User supplied a Midjourney-style prompt ("elegant gold arch with hanging Islamic lanterns, soft cream beige canvas, watercolor blush pink roses and sage green eucalyptus leaves along bottom corners, subtle Islamic geometric pattern overlay, luxury aesthetic, clean center space for text, 9:16") as their desired cover background. No image-generation tool is available in this environment, so it was built as an original inline SVG scene (`.cover__artwork`, viewBox `0 0 360 640`) rather than a raster image — keeps it crisp at any size, tiny payload, no HTTP request, and avoids any copyright/asset-copying risk: a faint 8-point-star geometric `<pattern>` lattice, a two-line pointed gold arch with a small finial, two hanging lantern silhouettes at the arch springs (chain + hexagonal body, original geometric construction), and mirrored bottom-corner clusters of stylized eucalyptus leaves + rosette-style "watercolor" roses (radial-gradient bloom + petal ellipses, not a real watercolor texture). Entrance choreography: artwork fades/scales in, arch lines hand-draw via `stroke-dasharray`/`stroke-dashoffset`, lanterns/florals stagger in after — reuses the same "fine-line drawing" + stagger language as the rest of the site. If the user later wants an actual raster/AI-generated background image instead of this vector illustration, that needs to be produced outside this tool (e.g. Midjourney/another image generator) and swapped in as a `background-image` on `.cover`.
+
+Mobile baseline: full-bleed under 860px; fluid type via `clamp()`; canvas breakpoint at 860px.
+
+Cover artwork replaced with user-supplied images (this session)
+User dropped two real images into `images/` (kept there as source backups, not referenced live): `background.jpg` (415×738, ≈9:16 portrait — a gold arch with hanging lanterns, botanical bottom corners, faint geometric pattern, clear arch-shaped void in the middle) and `envelope.png` (1408×768 landscape — a fully composed "opened envelope + card + wax seal + stamp" graphic already showing "Syamil & Sara / Malaysia 2026"). The hand-built SVG arch/lantern/floral scene from the previous session was removed and replaced with these real images:
+- `background.jpg` → `.cover`'s `background-image` (cover/center), full-bleed behind everything.
+- `envelope.png` → the `.cover__envelope-img`, sized `min(88%, 320px)` wide (auto height), and IS the "Buka Jemputan" trigger — the envelope itself is the `<button id="openInvite">`, not a separate button below it. Since the image already shows the couple's names/date baked in, the old separate HTML text stack (`cover__eyebrow`, `cover__names`, `cover__amp`, `cover__subtitle`) was deleted entirely to avoid duplicate/conflicting text — replaced with a single `sr-only` `<h1>` for accessibility.
+Both images are embedded as base64 `data:` URIs directly in the single HTML file (not linked via `<img src="images/...">`) to preserve the single-file requirement — this is why the file is now ~2.9MB (mostly `envelope.png`, which is a 2.15MB PNG). If the user wants a smaller file later, converting `envelope.png` to a compressed JPEG or WebP before re-embedding would cut this significantly.
+Open animation reworked around the envelope image: on click it lifts (`y:-22`), tilts (`rotate:-1.5deg`) and scales up slightly as if being drawn toward the guest, then fades, while the cover's `clip-path` wipe (unchanged from before) reveals the intro section beneath.
+Removed as dead code in the same pass: `.ornamental-frame`/`.ornamental-frame__line` (the thin inset card-edge border — redundant now that the real background image provides its own frame) and `.reveal-mask`/`.reveal-inner` (only used by the deleted eyebrow/subtitle text).
